@@ -1,0 +1,7 @@
+bidsdata/
+*.csv
+*.txt 
+.Rproj.user
+logs/
+config.ini
+.R*
