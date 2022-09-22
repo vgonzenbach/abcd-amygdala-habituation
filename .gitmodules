@@ -1,0 +1,3 @@
+[submodule "nda-abcd-s3-downloader"]
+	path = nda-abcd-s3-downloader
+	url = https://github.com/DCAN-Labs/nda-abcd-s3-downloader.git
