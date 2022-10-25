@@ -2,7 +2,7 @@
 import os
 import re
 import subprocess
-from bids import BIDSLayout
+import bids
 import numpy as np
 import pandas as pd
 import nibabel as nib
@@ -14,8 +14,8 @@ def setwd():
     return None
 
 setwd()
-
-layout = BIDSLayout('bidsdata', derivatives=True)
+bids.config.set_option('extension_initial_dot', True)
+layout = bids.BIDSLayout('bidsdata', derivatives=True)
 subjects = layout.get_subjects()
 
 def get_ptseries(sub):
@@ -29,7 +29,6 @@ def has_files(sub):
 
 
 def make_subject_df(sub):
-    print(sub)
     """Compute dataframe with stimulis as rows and rois as columns. Values represent the mean BOLD signal or that ROI, Stimuli"""
     try: # reading in .nii files
         ptseries_path = f'bidsdata/derivatives/abcd-hcp-pipeline/sub-{sub}/ses-baselineYear1Arm1/func/sub-{sub}_ses-baselineYear1Arm1_task-nback_bold_atlas-Power2011FreeSurferSubcortical_desc-filtered_timeseries.ptseries.nii'
@@ -56,24 +55,37 @@ def make_subject_df(sub):
         onsets = (onsets - min(onsets)) / 1000
 
     def map2stimuli(t):
-        """For timepoint t, return stimuli based on 2.516 windows"""
+        """For timepoint t, return stimuli type based on 2.516 windows"""
         hit = [i for i, x in enumerate(onsets) if x <= t < x + 2.516]
         if hit:
             index = onsets.index[hit.pop()]
-            return f"{event_df['BlockType'].loc[index]} {event_df['StimType'].loc[index]}"
+            return event_df['StimType'].loc[index]
         else:
-            return 'NA'
-    
+            return float('NaN')
+
+    def map2block(t):
+        """For timepoint t, return block type based on 2.516 windows"""
+        hit = [i for i, x in enumerate(onsets) if x <= t < x + 2.516]
+        if hit:
+            index = onsets.index[hit.pop()]
+            return event_df['BlockType'].loc[index]
+        else:
+            return float('NaN')
+
     stim = pd.Series([map2stimuli(t) for t in series_axis.time])
+    block = pd.Series([map2block(t) for t in series_axis.time])
+    order = (stim != stim.shift()).mask(stim.isnull()).astype(float).cumsum()
 
     roi_dict = {name: i for i, name in enumerate(parcel_axis.name) if name.isupper() and name != 'UNKNOWN'}
     def make_roi_df(roi_name, roi_index): 
-        """Get mean BOLD signal for different stimuli given an ROI"""
-        return pd.DataFrame({roi_name: ptseries_data[:, roi_index], 'Stimulus' :stim}).groupby('Stimulus').mean()
+        return pd.DataFrame({roi_name   : ptseries_data[:, roi_index], 
+                            'Stimulus'  : stim, 
+                            'Block' : block, 
+                            'Order' : order}).groupby(['Stimulus', 'Block', 'Order']).mean().sort_values(by='Order')
 
     subject_df = pd.concat([make_roi_df(roi_name, roi_index) for roi_name, roi_index in roi_dict.items()], axis=1)
     subject_df.insert(0, 'subject', sub)
-    subject_df = subject_df.reset_index(level=0)
+    subject_df = subject_df.reset_index()
     return subject_df
 
 df_list = [make_subject_df(sub) for sub in subjects]
