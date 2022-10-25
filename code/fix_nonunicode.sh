@@ -22,6 +22,5 @@ for subject in $(python -c "import sys, bids; bids.config.set_option('extension_
         #replacement=$(head -n1 $txt | iconv -f utf-8 -t utf-8 -c)
         #sed -i "1 s/.*/$replacement/g" $txt
         #echo $replacement
-        break
     fi
 done
