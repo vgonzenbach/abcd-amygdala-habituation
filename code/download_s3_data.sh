@@ -1,4 +1,4 @@
-
+#!/bin/bash
 cd $(dirname $0)/..
 python3 nda-abcd-s3-downloader/download.py \
     -i datastructure_manifest.txt \
