@@ -1,0 +1,33 @@
+---
+title: "Examining data downloaded"
+author: "Virgilio Gonzenbach"
+date: "9/14/2022"
+output: 
+  html_document:
+    df_print: paged
+    toc: true
+    toc_float: true
+    code_folding: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+
+load_event_info = function(){
+  #' Return dataframe with data from timeseries
+  df = read.delim('/home/vgonzenb/abcd/bidsdata/sourcedata/sub-NDARINVNKNMHEML/ses-baselineYear1Arm1/func/sub-NDARINVNKNMHEML_ses-baselineYear1Arm1_task-nback_run-01_bold_EventRelatedInformation.txt', header=FALSE)
+  colnames(df) <- df[2,]
+  df = df[-c(1:2),]
+  rownames(df) = 1:nrow(df)
+  return(df)
+}
+
+
+event_df = load_event_info()
+# View(event_df)
+
+```
+
